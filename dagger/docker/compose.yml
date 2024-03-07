@@ -1,0 +1,55 @@
+---
+
+services:
+  wavelog:
+    image: local/wavelog
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - wavelog-config:/var/www/html/application/config
+      - wavelog-logs:/var/www/html/application/logs
+      - wavelog-backup:/var/www/html/backup
+      - wavelog-updates:/var/www/html/updates
+      - wavelog-uploads:/var/www/html/uploads
+      - wavelog-images:/var/www/html/images/eqsl_card_images
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /var/www/html
+          ignore:
+            - .github/
+            - backup/
+            - updates/
+            - uploads/
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: 'MzRjNTNlMGYtMmQ3MS00MGNhLWJlNTQtM2MwODBlMGUwNmE5Cg=='
+      MYSQL_DATABASE: wavelog
+      MYSQL_USER: wavelog
+      MYSQL_PASSWORD: wavelog
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: [ 'CMD', 'mysqladmin' ,'ping', '-h', 'localhost', '-p$$MYSQL_ROOT_PASSWORD' ]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  db-data:
+  wavelog-config:
+  wavelog-logs:
+  wavelog-backup:
+  wavelog-updates:
+  wavelog-uploads:
+  wavelog-images:
