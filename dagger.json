@@ -1,6 +1,6 @@
 {
   "name": "wavelog-docker",
   "sdk": "go",
-  "source": "dagger",
+  "source": ".",
   "engineVersion": "v0.10.1"
 }

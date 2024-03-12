@@ -7,7 +7,19 @@ on:
 
 jobs:
   build:
-    name: 'build-and-push'
+    name: 'build'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build container image
+        uses: dagger/dagger-for-github@v5
+        with:
+          version: "0.10.1"
+          verb: call
+          module: '.'
+          args: 'build'
+
+  build-and-push:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -17,4 +29,4 @@ jobs:
           version: "0.10.1"
           verb: call
           module: '.'
-          args: 'build-and-push'
+          args: 'build-and-push --registry="ghcr.io/philipreinken/wavelog-docker/wavelog"'
