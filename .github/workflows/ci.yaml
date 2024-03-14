@@ -31,7 +31,8 @@ jobs:
       - name: Build container image
         uses: dagger/dagger-for-github@v5
         with:
-          version: "0.10.1"
+          version: '0.10.1'
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           verb: call
           module: '.'
           args: 'build --php-version=8.3 --wavelog-version=1.3.1'
@@ -46,7 +47,8 @@ jobs:
       - name: Build and push container image
         uses: dagger/dagger-for-github@v5
         with:
-          version: "0.10.1"
+          version: '0.10.1'
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           verb: call
           module: '.'
           args: >-
@@ -58,4 +60,4 @@ jobs:
                 --username="${{ github.actor }}" \
                 --secret="env:CI_REGISTRY_TOKEN" \
               publish \
-                --address="ghcr.io/philipreinken/wavelog-docker:${{ inputs.image_tag }}"
+                --address="ghcr.io/philipreinken/wavelog:${{ inputs.image_tag }}"
