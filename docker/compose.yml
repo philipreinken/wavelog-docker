@@ -4,10 +4,10 @@ services:
   wavelog:
     image: local/wavelog
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       - wavelog-config:/var/www/html/application/config
       - wavelog-logs:/var/www/html/application/logs
@@ -32,12 +32,12 @@ services:
   database:
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: 'MzRjNTNlMGYtMmQ3MS00MGNhLWJlNTQtM2MwODBlMGUwNmE5Cg=='
+      MYSQL_ROOT_PASSWORD: not-a-real-password
       MYSQL_DATABASE: wavelog
       MYSQL_USER: wavelog
       MYSQL_PASSWORD: wavelog
     ports:
-      - "3306:3306"
+      - '3306:3306'
     volumes:
       - db-data:/var/lib/mysql
     healthcheck:
