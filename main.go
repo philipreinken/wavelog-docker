@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"strings"
 	"time"
@@ -68,38 +67,4 @@ func (m *WavelogDocker) Build(ctx context.Context, wavelogVersion string, phpVer
 
 	return m.AddLabels(dag.Container()).
 		Build(dag.CurrentModule().Source().Directory("docker"), opts)
-}
-
-// Pushes a container image
-func (m *WavelogDocker) Push(ctx context.Context, c *Container, registry string, tag string, username string, secret *Secret) (string, error) {
-	return c.WithRegistryAuth(registry, username, secret).
-		WithLabel(oci.AnnotationBaseImageName, registry).
-		Publish(ctx, fmt.Sprintf("%s:%s", registry, tag), ContainerPublishOpts{})
-}
-
-// Builds the container and pushes it
-func (m *WavelogDocker) BuildAndPush(ctx context.Context, registry string, tag string, username string, secret *Secret) (string, error) {
-	return m.Push(ctx, m.Build(ctx, tag, "8.3"), registry, tag, username, secret)
-}
-
-func (m *WavelogDocker) BuildAndPushVersions(ctx context.Context, registry string, username string, secret *Secret, versions JSON) ([]string, error) {
-	versionsMap := make(map[string]string)
-	out := []string{}
-
-	err := json.Unmarshal([]byte(versions), &versionsMap)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: Parallelise using dag.Pipeline() (probably?)
-	for version, sha := range versionsMap {
-		id, err := m.Push(ctx, m.Build(ctx, version, "8.3").WithLabel(oci.AnnotationVersion, version).WithLabel(oci.AnnotationRevision, sha), registry, version, username, secret)
-		if err != nil {
-			return nil, err
-		}
-
-		out = append(out, id)
-	}
-
-	return out, nil
 }
