@@ -23,6 +23,8 @@ on:
   schedule:
     - cron: '0 8 * * *'
 
+# TODO: Split this into separate workflows
+
 jobs:
   build:
     if: ${{ github.event_name == 'push'  || github.event_name == 'pull_request' }}
