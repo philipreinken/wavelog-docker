@@ -4,14 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-version"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
+	"sort"
 	"strings"
 	"time"
 )
 
 const wavelogRepoUrl = "https://github.com/wavelog/wavelog.git"
 
-type WavelogDocker struct{}
+type WavelogDocker struct {
+	RegistryAuth *RegistryAuth `json:"registryAuth"`
+}
+
+type RegistryAuth struct {
+	Address  string  `json:"address"`
+	Username string  `json:"username"`
+	Secret   *Secret `json:"secret"`
+}
 
 func listTags(ctx context.Context, repository string) (map[string]string, error) {
 	tagsString, err := dag.Container().
@@ -38,8 +48,46 @@ func listTags(ctx context.Context, repository string) (map[string]string, error)
 	return tags, nil
 }
 
-func (m *WavelogDocker) ListWavelogGitTags(ctx context.Context) (JSON, error) {
-	tags, err := listTags(ctx, wavelogRepoUrl)
+func latestTag(tags map[string]string) (string, error) {
+	versions := make([]*version.Version, 0, len(tags))
+
+	for tag, _ := range tags {
+		v, err := version.NewVersion(tag)
+		if err != nil {
+			return "", err
+		}
+
+		versions = append(versions, v)
+	}
+
+	sort.Sort(version.Collection(versions))
+
+	return versions[len(versions)-1].Original(), nil
+}
+
+func (m *WavelogDocker) getContainer() *Container {
+	if m.RegistryAuth != nil {
+		return dag.Container().WithRegistryAuth(m.RegistryAuth.Address, m.RegistryAuth.Username, m.RegistryAuth.Secret)
+	} else {
+		return dag.Container()
+	}
+}
+
+func (m *WavelogDocker) WithRegistryAuth(address string, username string, secret *Secret) *WavelogDocker {
+	m.RegistryAuth = &RegistryAuth{Address: address, Username: username, Secret: secret}
+	return m
+}
+
+func (m *WavelogDocker) GitTags(
+	ctx context.Context,
+	// +optional
+	repository string,
+) (JSON, error) {
+	if repository == "" {
+		repository = wavelogRepoUrl
+	}
+
+	tags, err := listTags(ctx, repository)
 	if err != nil {
 		return "", err
 	}
@@ -50,6 +98,23 @@ func (m *WavelogDocker) ListWavelogGitTags(ctx context.Context) (JSON, error) {
 	}
 
 	return JSON(ret), nil
+}
+
+func (m *WavelogDocker) LatestTag(
+	ctx context.Context,
+	// +optional
+	repository string,
+) (string, error) {
+	if repository == "" {
+		repository = wavelogRepoUrl
+	}
+
+	tags, err := listTags(ctx, repository)
+	if err != nil {
+		return "", err
+	}
+
+	return latestTag(tags)
 }
 
 func (m *WavelogDocker) AddLabels(c *Container) *Container {
@@ -100,7 +165,7 @@ func (m *WavelogDocker) BuildPipeline(ctx context.Context) ([]*Container, error)
 	var containers []*Container
 
 	for tag, sha := range wavelogTags {
-		pipelinedContainer := build.Pipeline("wavelog").Pipeline(tag).Container().
+		pipelinedContainer := build.Pipeline(tag).Container().
 			WithLabel(oci.AnnotationVersion, tag).
 			WithLabel(oci.AnnotationRevision, sha)
 
@@ -110,35 +175,61 @@ func (m *WavelogDocker) BuildPipeline(ctx context.Context) ([]*Container, error)
 	return containers, nil
 }
 
-func (m *WavelogDocker) PublishPipeline(ctx context.Context) error {
+func (m *WavelogDocker) PublishPipeline(ctx context.Context) (string, error) {
 	publish := dag.Pipeline("publish")
 	containers, err := m.BuildPipeline(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
+	tags, err := listTags(ctx, wavelogRepoUrl)
+	if err != nil {
+		return "", err
+	}
+	latestTag, err := latestTag(tags)
+	if err != nil {
+		return "", err
+	}
+
+	responses := ""
 
 	for _, container := range containers {
 		id, err := container.ID(ctx)
 		if err != nil {
-			return err
+			return "", err
 		}
 
-		response, err := publishGhcr(ctx, publish.LoadContainerFromID(id))
+		tag, err := container.Label(ctx, oci.AnnotationVersion)
 		if err != nil {
-			return err
+			return tag, err
 		}
 
-		fmt.Println(response)
+		response, err := m.Publish(ctx, publish.Pipeline(string(id)).LoadContainerFromID(id), tag)
+		if err != nil {
+			return response, err
+		}
+
+		responses = fmt.Sprintf("%s\n%s", responses, response)
+
+		if tag == latestTag {
+			response, err := m.Publish(ctx, publish.Pipeline("latest").LoadContainerFromID(id), "latest")
+			if err != nil {
+				return response, err
+			}
+
+			responses = fmt.Sprintf("%s\n%s", responses, response)
+
+		}
 	}
 
-	return nil
+	return strings.TrimSpace(responses), nil
 }
 
-func publishGhcr(ctx context.Context, container *Container) (string, error) {
-	version, err := container.Label(ctx, oci.AnnotationVersion)
-	if err != nil {
-		return version, err
+func (m *WavelogDocker) Publish(ctx context.Context, container *Container, tag string) (string, error) {
+	if m.RegistryAuth == nil {
+		return "", fmt.Errorf("RegistryAuth is not set! Define it using with-registry-auth!")
 	}
 
-	return container.Publish(ctx, fmt.Sprintf("ghcr.io/philipreinken/wavelog:%s", version))
+	return container.
+		WithRegistryAuth(m.RegistryAuth.Address, m.RegistryAuth.Username, m.RegistryAuth.Secret).
+		Publish(ctx, fmt.Sprintf("%s/wavelog:%s", m.RegistryAuth.Address, tag))
 }
