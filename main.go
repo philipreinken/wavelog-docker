@@ -175,7 +175,7 @@ func (m *WavelogDocker) BuildPipeline(ctx context.Context) ([]*Container, error)
 	return containers, nil
 }
 
-func (m *WavelogDocker) PublishPipeline(ctx context.Context) (string, error) {
+func (m *WavelogDocker) PublishPipeline(ctx context.Context, name string) (string, error) {
 	publish := dag.Pipeline("publish")
 	containers, err := m.BuildPipeline(ctx)
 	if err != nil {
@@ -205,7 +205,7 @@ func (m *WavelogDocker) PublishPipeline(ctx context.Context) (string, error) {
 			return tag, err
 		}
 
-		response, err := m.Publish(ctx, publish.Pipeline(string(id)).LoadContainerFromID(id), tag)
+		response, err := m.Publish(ctx, publish.Pipeline(string(id)).LoadContainerFromID(id), name, tag)
 		if err != nil {
 			return response, err
 		}
@@ -213,7 +213,7 @@ func (m *WavelogDocker) PublishPipeline(ctx context.Context) (string, error) {
 		responses = fmt.Sprintf("%s\n%s", responses, response)
 
 		if tag == latestTag {
-			response, err := m.Publish(ctx, publish.Pipeline("latest").LoadContainerFromID(id), "latest")
+			response, err := m.Publish(ctx, publish.Pipeline("latest").LoadContainerFromID(id), name, "latest")
 			if err != nil {
 				return response, err
 			}
@@ -226,12 +226,12 @@ func (m *WavelogDocker) PublishPipeline(ctx context.Context) (string, error) {
 	return strings.TrimSpace(responses), nil
 }
 
-func (m *WavelogDocker) Publish(ctx context.Context, container *Container, tag string) (string, error) {
+func (m *WavelogDocker) Publish(ctx context.Context, container *Container, name string, tag string) (string, error) {
 	if m.RegistryAuth == nil {
 		return "", fmt.Errorf("RegistryAuth is not set! Define it using with-registry-auth!")
 	}
 
 	return container.
 		WithRegistryAuth(m.RegistryAuth.Address, m.RegistryAuth.Username, m.RegistryAuth.Secret).
-		Publish(ctx, fmt.Sprintf("%s/wavelog:%s", m.RegistryAuth.Address, tag))
+		Publish(ctx, fmt.Sprintf("%s/%s:%s", m.RegistryAuth.Address, name, tag))
 }
