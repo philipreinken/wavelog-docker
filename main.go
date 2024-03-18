@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// TODO: Generate README.md
+// TODO: Generate PHP/App version/Webserver matrix
+
 const wavelogRepoUrl = "https://github.com/wavelog/wavelog.git"
 
 type WavelogDocker struct {
