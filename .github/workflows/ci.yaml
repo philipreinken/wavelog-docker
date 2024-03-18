@@ -39,8 +39,31 @@ jobs:
           module: '.'
           args: 'build --php-version=8.3 --wavelog-version=1.3.1'
 
-  build-and-push:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'}}
+  build-and-push-manual:
+    if: ${{ github.event_name == 'workflow_dispatch'}}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build and push container image
+        uses: dagger/dagger-for-github@v5
+        with:
+          version: '0.10.1'
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          verb: call
+          module: '.'
+          args: >-
+            build \
+              --php-version="${{ inputs.php_version }}" \
+              --wavelog-version="${{ inputs.wavelog_version }}" \
+              with-registry-auth \
+                --address="${{ vars.CI_REGISTRY_ADDRESS }}" \
+                --username="${{ vars.CI_REGISTRY_USER }}" \
+                --secret="env:CI_REGISTRY_TOKEN" \
+              publish \
+                --address="${{ vars.CI_REGISTRY_ADDRESS }}/wavelog:${{ inputs.image_tag }}"
+
+  build-and-push-auto:
+    if: ${{ github.event_name == 'schedule' }}
     runs-on: ubuntu-22.04
     env:
       CI_REGISTRY_TOKEN: ${{ secrets.CI_REGISTRY_TOKEN }}

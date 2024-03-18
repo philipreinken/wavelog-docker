@@ -190,6 +190,8 @@ func (m *WavelogDocker) PublishPipeline(ctx context.Context) (string, error) {
 		return "", err
 	}
 
+	// TODO: Add a filter for the current and previous minor version
+
 	responses := ""
 
 	for _, container := range containers {
