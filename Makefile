@@ -2,7 +2,7 @@
 .PHONY: build build-and-push-auto
 
 build:
-	dagger call build --php-version=8.3 --wavelog-version=1.3.1
+	dagger call build-containers-for-current-versions --flavours="apache" --php-versions="8.1,8.2,8.3" sync
 
 build-and-push-auto:
 	dagger call \
@@ -10,5 +10,9 @@ build-and-push-auto:
 			--address="${CI_REGISTRY_ADDRESS}" \
 			--username="${CI_REGISTRY_USER}" \
 			--secret="env:CI_REGISTRY_TOKEN" \
-		publish-pipeline \
-			--name="${CI_REGISTRY_USER}/wavelog"
+		with-containers-for-current-versions \
+			--flavours="apache" \
+			--php-versions="8.2" \
+		publish-containers \
+		containers \
+		sync
