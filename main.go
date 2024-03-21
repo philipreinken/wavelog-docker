@@ -29,3 +29,7 @@ func (m *WavelogDocker) WithRegistryAuth(
 
 	return m
 }
+
+func (m *WavelogDocker) GetContainers() []*Container {
+	return m.Containers
+}

@@ -2,7 +2,7 @@
 .PHONY: build build-and-push-auto
 
 build:
-	dagger call build-containers-for-current-versions --flavours="apache" --php-versions="8.1,8.2,8.3" sync
+	dagger call build-containers-for-current-versions --flavours="apache" --php-versions="8.1,8.2,8.3" labels value
 
 build-and-push-auto:
 	dagger call \
@@ -14,5 +14,5 @@ build-and-push-auto:
 			--flavours="apache" \
 			--php-versions="8.2" \
 		publish-containers \
-		containers \
-		sync
+		get-containers \
+		labels value

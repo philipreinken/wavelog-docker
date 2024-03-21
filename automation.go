@@ -8,7 +8,13 @@ import (
 	"strings"
 )
 
-func (m *WavelogDocker) ListTags(ctx context.Context, repository string) ([]string, error) {
+func (m *WavelogDocker) ListTags(
+	ctx context.Context,
+	// The repository to list tags for.
+	// +optional
+	// +default="https://github.com/wavelog/wavelog.git"
+	repository string,
+) ([]string, error) {
 	tagsString, err := dag.Container().
 		From("bitnami/git:2").
 		WithDefaultArgs([]string{"git", "ls-remote", "--tags", repository}).
