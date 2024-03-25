@@ -243,9 +243,9 @@ func (m *WavelogDocker) PublishContainer(ctx context.Context, c *Container) (str
 }
 
 // PublishContainers Publishes containers prepared with WithContainer, WithContainers or WithContainersForCurrentVersions.
-func (m *WavelogDocker) PublishContainers(ctx context.Context) (*WavelogDocker, error) {
+func (m *WavelogDocker) PublishContainers(ctx context.Context) error {
 	if len(m.Containers) < 1 {
-		return m, fmt.Errorf("No containers to publish!")
+		return fmt.Errorf("no Containers to publish")
 	}
 
 	eg, gctx := errgroup.WithContext(ctx)
@@ -256,10 +256,10 @@ func (m *WavelogDocker) PublishContainers(ctx context.Context) (*WavelogDocker, 
 	}
 
 	if err := eg.Wait(); err != nil {
-		return m, err
+		return err
 	}
 
-	return m, nil
+	return nil
 }
 
 func (m *WavelogDocker) syncBuilder(ctx context.Context, containers *[]*Container, flavour, phpVersion, wavelogVersion string) func() error {

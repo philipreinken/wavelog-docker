@@ -26,7 +26,7 @@ jobs:
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           verb: call
           module: '.'
-          args: 'build-containers-for-current-versions --flavours="apache" --php-versions="8.1,8.2,8.3" labels value'
+          args: 'build-containers-for-current-versions --flavours="apache" --php-versions="8.1,8.2,8.3" sync'
 
   build-and-push-auto:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -50,6 +50,4 @@ jobs:
               with-containers-for-current-versions \
                 --flavours="apache" \
                 --php-versions="8.2" \
-              publish-containers \
-              get-containers \
-              labels value
+              publish-containers

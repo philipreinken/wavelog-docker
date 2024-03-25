@@ -3,8 +3,8 @@ package main
 // TODO: Generate README.md
 
 type WavelogDocker struct {
-	RegistryAuth *RegistryAuth `json:"registryAuth"`
-	Containers   []*Container  `json:"containers"`
+	RegistryAuth *RegistryAuth
+	Containers   []*Container
 }
 
 type RegistryAuth struct {
@@ -28,8 +28,4 @@ func (m *WavelogDocker) WithRegistryAuth(
 	}
 
 	return m
-}
-
-func (m *WavelogDocker) GetContainers() []*Container {
-	return m.Containers
 }
