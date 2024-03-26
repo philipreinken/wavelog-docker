@@ -5,6 +5,7 @@ import (
 	"fmt"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/sync/errgroup"
+	"strings"
 	"time"
 )
 
@@ -26,16 +27,28 @@ const apacheSiteConfig = `
 `
 
 func base(
+	ctx context.Context,
 	// +optional
 	c *Container,
 	phpVersion,
 	flavour string,
-) *Container {
+) (*Container, error) {
 	if c == nil {
 		c = dag.Container()
 	}
 
-	return c.From(fmt.Sprintf("php:%s-%s", phpVersion, flavour))
+	c = c.From(fmt.Sprintf("php:%s-%s", phpVersion, flavour))
+
+	imageRef, err := c.ImageRef(ctx)
+	if err != nil {
+		return c, err
+	}
+
+	fromRef, digest := strings.Split(imageRef, "@")[0], strings.Split(imageRef, "@")[1]
+
+	return c.
+		WithLabel(oci.AnnotationBaseImageDigest, digest).
+		WithLabel(oci.AnnotationBaseImageName, fromRef), nil
 }
 
 func withPhpExtensionInstaller(c *Container) *Container {
@@ -108,7 +121,10 @@ func (m *WavelogDocker) BuildContainer(
 		flavour = "apache"
 	}
 
-	c := base(nil, phpVersion, flavour)
+	c, err := base(ctx, nil, phpVersion, flavour)
+	if err != nil {
+		fmt.Println(fmt.Sprintf("[WARN] %v", err))
+	}
 
 	c = withPhpExtensionInstaller(c)
 	c = withPhpExtensions(c)
@@ -212,6 +228,40 @@ func (m *WavelogDocker) WithContainersForCurrentVersions(
 	phpVersions []string,
 ) (*WavelogDocker, error) {
 	c, err := m.BuildContainersForCurrentVersions(ctx, flavours, phpVersions)
+	if err != nil {
+		return m, err
+	}
+
+	m.Containers = append(m.Containers, c...)
+
+	return m, err
+}
+
+// BuildContainersForAllVersions builds containers for all combinations of the given flavours and PHP versions and all versions of wavelog.
+func (m *WavelogDocker) BuildContainersForAllVersions(
+	ctx context.Context,
+	// The PHP image flavours to use.
+	flavours,
+	// The PHP versions to use.
+	phpVersions []string,
+) ([]*Container, error) {
+	wavelogVersions, err := m.ListTags(ctx, wavelogRepoUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.BuildContainers(ctx, flavours, phpVersions, wavelogVersions)
+}
+
+// WithContainersForAllVersions builds containers for all combinations of the given flavours and PHP versions and all versions of wavelog and attaches them to the module instance.
+func (m *WavelogDocker) WithContainersForAllVersions(
+	ctx context.Context,
+	// The PHP image flavours to use.
+	flavours,
+	// The PHP versions to use.
+	phpVersions []string,
+) (*WavelogDocker, error) {
+	c, err := m.BuildContainersForAllVersions(ctx, flavours, phpVersions)
 	if err != nil {
 		return m, err
 	}
