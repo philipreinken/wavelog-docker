@@ -10,6 +10,8 @@ the command to finish and navigate to [http://localhost:8080](http://localhost:8
 
 ## About
 
+Published on hub.docker.com: https://hub.docker.com/r/philipreinken/wavelog
+
 The image is currently based on the `php:8.2-apache` image and is rebuilt automatically on a regular basis for the
 latest two minor versions of `wavelog`.
 
