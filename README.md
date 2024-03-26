@@ -1,4 +1,4 @@
-# wavelog-docker
+# wavelog-docker 🐳
 
 > unofficial container setup for [wavelog](https://github.com/wavelog/wavelog)
 
@@ -13,8 +13,5 @@ the command to finish and navigate to [http://localhost:8080](http://localhost:8
 The image is currently based on the `php:8.2-apache` image and is rebuilt automatically on a regular basis for the
 latest two minor versions of `wavelog`.
 
-## Disclaimer
-
-There's no connection to the [wavelog](https://github.com/wavelog/wavelog) project.
-This is primarily intended for experimentation and my own setup, use at your own risk.
-Contributions are welcome.
+There's no connection to the [wavelog](https://github.com/wavelog/wavelog) project, this is primarily intended for
+experimentation and my own setup, so use at your own risk. Contributions are welcome.
