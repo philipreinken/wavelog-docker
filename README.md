@@ -1,4 +1,4 @@
-# wavelog-docker 🐳
+# wavelog-docker
 
 > unofficial container setup for [wavelog](https://github.com/wavelog/wavelog)
 
