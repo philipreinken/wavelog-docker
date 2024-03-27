@@ -15,5 +15,5 @@ Published on hub.docker.com: https://hub.docker.com/r/philipreinken/wavelog
 The image is currently based on the `php:8.2-apache` image and is rebuilt automatically on a regular basis for the
 latest two minor versions of `wavelog`.
 
-There's no connection to the [wavelog](https://github.com/wavelog/wavelog) project, this is primarily intended for
-experimentation and my own setup, so use at your own risk. Contributions are welcome.
+This is primarily intended for
+experimentation and my personal setup, so use at your own risk. Contributions are welcome.
