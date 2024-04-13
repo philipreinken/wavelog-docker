@@ -111,7 +111,10 @@ func (m *WavelogDocker) BuildContainer(
 	// +default="8.2"
 	phpVersion,
 	// The version of wavelog to use.
-	wavelogVersion string,
+	wavelogVersion,
+	// The target architecture.
+	// +default="linux/amd64"
+	arch string,
 ) *Container {
 	if phpVersion == "" {
 		phpVersion = "8.2"
@@ -121,7 +124,13 @@ func (m *WavelogDocker) BuildContainer(
 		flavour = "apache"
 	}
 
-	c, err := base(ctx, nil, phpVersion, flavour)
+	if arch == "" {
+		arch = "linux/amd64"
+	}
+
+	container := dag.Container(ContainerOpts{Platform: Platform(arch)})
+
+	c, err := base(ctx, container, phpVersion, flavour)
 	if err != nil {
 		fmt.Println(fmt.Sprintf("[WARN] %v", err))
 	}
@@ -146,9 +155,12 @@ func (m *WavelogDocker) WithContainer(
 	// +default="8.2"
 	phpVersion,
 	// The version of wavelog to use.
-	wavelogVersion string,
+	wavelogVersion,
+	// The target architecture.
+	// +default="linux/amd64"
+	arch string,
 ) *WavelogDocker {
-	m.Containers = append(m.Containers, m.BuildContainer(ctx, flavour, phpVersion, wavelogVersion))
+	m.Containers = append(m.Containers, m.BuildContainer(ctx, flavour, phpVersion, wavelogVersion, arch))
 
 	return m
 }
@@ -161,7 +173,9 @@ func (m *WavelogDocker) BuildContainers(
 	// The PHP versions to use.
 	phpVersions,
 	// The versions of wavelog to use.
-	wavelogVersions []string,
+	wavelogVersions,
+	// The target architectures.
+	arches []string,
 ) ([]*Container, error) {
 	var containers []*Container
 
@@ -171,7 +185,9 @@ func (m *WavelogDocker) BuildContainers(
 	for _, flavour := range flavours {
 		for _, phpVersion := range phpVersions {
 			for _, wavelogVersion := range wavelogVersions {
-				eg.Go(m.syncBuilder(gctx, &containers, flavour, phpVersion, wavelogVersion))
+				for _, arch := range arches {
+					eg.Go(m.syncBuilder(gctx, &containers, flavour, phpVersion, wavelogVersion, arch))
+				}
 			}
 		}
 	}
@@ -191,9 +207,11 @@ func (m *WavelogDocker) WithContainers(
 	// The PHP versions to use.
 	phpVersions,
 	// The versions of wavelog to use.
-	wavelogVersions []string,
+	wavelogVersions,
+	// The target architectures.
+	arches []string,
 ) (*WavelogDocker, error) {
-	c, err := m.BuildContainers(ctx, flavours, phpVersions, wavelogVersions)
+	c, err := m.BuildContainers(ctx, flavours, phpVersions, wavelogVersions, arches)
 	if err != nil {
 		return m, err
 	}
@@ -209,14 +227,16 @@ func (m *WavelogDocker) BuildContainersForCurrentVersions(
 	// The PHP image flavours to use.
 	flavours,
 	// The PHP versions to use.
-	phpVersions []string,
+	phpVersions,
+	// The target architectures.
+	arches []string,
 ) ([]*Container, error) {
 	wavelogVersions, err := m.GetTagsForLatestTwoMinorVersions(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return m.BuildContainers(ctx, flavours, phpVersions, wavelogVersions)
+	return m.BuildContainers(ctx, flavours, phpVersions, wavelogVersions, arches)
 }
 
 // WithContainersForCurrentVersions builds containers, automatically selecting the current versions of wavelog and attaches them to the module instance.
@@ -225,9 +245,11 @@ func (m *WavelogDocker) WithContainersForCurrentVersions(
 	// The PHP image flavours to use.
 	flavours,
 	// The PHP versions to use.
-	phpVersions []string,
+	phpVersions,
+	// The target architectures.
+	arches []string,
 ) (*WavelogDocker, error) {
-	c, err := m.BuildContainersForCurrentVersions(ctx, flavours, phpVersions)
+	c, err := m.BuildContainersForCurrentVersions(ctx, flavours, phpVersions, arches)
 	if err != nil {
 		return m, err
 	}
@@ -243,14 +265,16 @@ func (m *WavelogDocker) BuildContainersForAllVersions(
 	// The PHP image flavours to use.
 	flavours,
 	// The PHP versions to use.
-	phpVersions []string,
+	phpVersions,
+	// The target architectures.
+	arches []string,
 ) ([]*Container, error) {
 	wavelogVersions, err := m.ListTags(ctx, wavelogRepoUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	return m.BuildContainers(ctx, flavours, phpVersions, wavelogVersions)
+	return m.BuildContainers(ctx, flavours, phpVersions, wavelogVersions, arches)
 }
 
 // WithContainersForAllVersions builds containers for all combinations of the given flavours and PHP versions and all versions of wavelog and attaches them to the module instance.
@@ -259,9 +283,11 @@ func (m *WavelogDocker) WithContainersForAllVersions(
 	// The PHP image flavours to use.
 	flavours,
 	// The PHP versions to use.
-	phpVersions []string,
+	phpVersions,
+	// The target architectures.
+	arches []string,
 ) (*WavelogDocker, error) {
-	c, err := m.BuildContainersForAllVersions(ctx, flavours, phpVersions)
+	c, err := m.BuildContainersForAllVersions(ctx, flavours, phpVersions, arches)
 	if err != nil {
 		return m, err
 	}
@@ -312,9 +338,9 @@ func (m *WavelogDocker) PublishContainers(ctx context.Context) error {
 	return nil
 }
 
-func (m *WavelogDocker) syncBuilder(ctx context.Context, containers *[]*Container, flavour, phpVersion, wavelogVersion string) func() error {
+func (m *WavelogDocker) syncBuilder(ctx context.Context, containers *[]*Container, flavour, phpVersion, wavelogVersion, arch string) func() error {
 	return func() error {
-		container, err := m.BuildContainer(ctx, flavour, phpVersion, wavelogVersion).Sync(ctx)
+		container, err := m.BuildContainer(ctx, flavour, phpVersion, wavelogVersion, arch).Sync(ctx)
 
 		if err == nil {
 			// TODO: Use channels here
