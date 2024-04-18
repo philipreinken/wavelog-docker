@@ -50,5 +50,5 @@ jobs:
               with-containers-for-current-versions \
                 --flavours="apache" \
                 --php-versions="8.2" \
-                --arches="linux/amd64,linux/arm64" \
+                --platforms="linux/amd64,linux/arm64" \
               publish-containers
