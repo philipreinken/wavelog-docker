@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/go-version"
+	"golang.org/x/exp/slices"
 	"sort"
 	"strings"
 )
@@ -29,6 +30,13 @@ func (m *WavelogDocker) ListTags(
 	for _, tagLine := range strings.Split(strings.TrimSpace(tagsString), "\n") {
 		s := strings.Split(tagLine, "\t")
 		tag := strings.TrimPrefix(s[1], "refs/tags/")
+		tag = strings.TrimRightFunc(tag, func(r rune) bool {
+			return r != '.' && r != 'v' && (r < '0' || r > '9')
+		})
+
+		if slices.Contains(tags, tag) {
+			continue
+		}
 
 		tags = append(tags, tag)
 	}
