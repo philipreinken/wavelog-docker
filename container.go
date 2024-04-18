@@ -298,7 +298,11 @@ func (m *WavelogDocker) WithContainersForAllVersions(
 }
 
 // PublishContainer Publishes a single container.
-func (m *WavelogDocker) PublishContainer(ctx context.Context, c *Container) (string, error) {
+func (m *WavelogDocker) PublishContainer(
+	ctx context.Context,
+	c *Container,
+	platformVariants []*Container,
+) (string, error) {
 	if m.RegistryAuth == nil {
 		return "", fmt.Errorf("RegistryAuth is not set! Define it using with-registry-auth!")
 	}
@@ -315,7 +319,7 @@ func (m *WavelogDocker) PublishContainer(ctx context.Context, c *Container) (str
 
 	return c.
 		WithRegistryAuth(m.RegistryAuth.Address, m.RegistryAuth.Username, m.RegistryAuth.Secret).
-		Publish(ctx, fmt.Sprintf("%s/%s/%s:%s", m.RegistryAuth.Address, m.RegistryAuth.Username, name, tag+"-multiarch"), ContainerPublishOpts{PlatformVariants: []*Container{c}})
+		Publish(ctx, fmt.Sprintf("%s/%s/%s:%s", m.RegistryAuth.Address, m.RegistryAuth.Username, name, tag+"-multiarch"), ContainerPublishOpts{PlatformVariants: platformVariants})
 }
 
 // PublishContainers Publishes containers prepared with WithContainer, WithContainers or WithContainersForCurrentVersions.
@@ -324,11 +328,16 @@ func (m *WavelogDocker) PublishContainers(ctx context.Context) error {
 		return fmt.Errorf("no Containers to publish")
 	}
 
-	eg, gctx := errgroup.WithContext(ctx)
-	eg.SetLimit(len(m.Containers))
+	platformVariants, err := m.platformVariants(ctx)
+	if err != nil {
+		return err
+	}
 
-	for _, c := range m.Containers {
-		eg.Go(m.syncPublisher(gctx, c))
+	eg, gctx := errgroup.WithContext(ctx)
+	eg.SetLimit(len(platformVariants))
+
+	for _, c := range platformVariants {
+		eg.Go(m.syncPublisher(gctx, c[0], c[1:]))
 	}
 
 	if err := eg.Wait(); err != nil {
@@ -336,6 +345,26 @@ func (m *WavelogDocker) PublishContainers(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (m *WavelogDocker) platformVariants(ctx context.Context) (map[string][]*Container, error) {
+	var platformVariants = make(map[string][]*Container)
+
+	for _, c := range m.Containers {
+		wavelogVersion, err := c.Label(ctx, oci.AnnotationVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := platformVariants[wavelogVersion]; !ok {
+			platformVariants[wavelogVersion] = make([]*Container, 0)
+		}
+
+		platformVariants[wavelogVersion] = append(platformVariants[wavelogVersion], c)
+
+	}
+
+	return platformVariants, nil
 }
 
 func (m *WavelogDocker) syncBuilder(ctx context.Context, containers *[]*Container, flavour, phpVersion, wavelogVersion, platform string) func() error {
@@ -351,9 +380,9 @@ func (m *WavelogDocker) syncBuilder(ctx context.Context, containers *[]*Containe
 	}
 }
 
-func (m *WavelogDocker) syncPublisher(ctx context.Context, c *Container) func() error {
+func (m *WavelogDocker) syncPublisher(ctx context.Context, c *Container, platformVariants []*Container) func() error {
 	return func() error {
-		_, err := m.PublishContainer(ctx, c)
+		_, err := m.PublishContainer(ctx, c, platformVariants)
 
 		return err
 	}
