@@ -319,7 +319,7 @@ func (m *WavelogDocker) PublishContainer(
 
 	return c.
 		WithRegistryAuth(m.RegistryAuth.Address, m.RegistryAuth.Username, m.RegistryAuth.Secret).
-		Publish(ctx, fmt.Sprintf("%s/%s/%s:%s", m.RegistryAuth.Address, m.RegistryAuth.Username, name, tag+"-multiarch"), ContainerPublishOpts{PlatformVariants: platformVariants})
+		Publish(ctx, fmt.Sprintf("%s/%s/%s:%s", m.RegistryAuth.Address, m.RegistryAuth.Username, name, tag), ContainerPublishOpts{PlatformVariants: platformVariants})
 }
 
 // PublishContainers Publishes containers prepared with WithContainer, WithContainers or WithContainersForCurrentVersions.
