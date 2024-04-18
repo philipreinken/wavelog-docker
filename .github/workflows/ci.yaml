@@ -26,7 +26,7 @@ jobs:
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           verb: call
           module: '.'
-          args: 'build-containers-for-current-versions --flavours="apache" --php-versions="8.2" --arches="linux/amd64,linux/arm64" sync'
+          args: 'build-containers-for-current-versions --flavours="apache" --php-versions="8.2" --platforms="linux/amd64,linux/arm64" sync'
 
   build-and-push-auto:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
