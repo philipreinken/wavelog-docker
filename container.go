@@ -81,9 +81,15 @@ func withWavelog(c *Container, tag string) *Container {
 		Tag(tag).
 		Tree()
 
+	htaccess := wavelogCode.File(".htaccess.sample")
+
+	if _, err := htaccess.Size(context.Background()); err != nil {
+		htaccess = wavelogCode.File("htaccess.sample")
+	}
+
 	return c.
 		WithDirectory("/var/www/html", wavelogCode, ContainerWithDirectoryOpts{Owner: "www-data"}).
-		WithFile("/var/www/html/.htaccess", wavelogCode.File(".htaccess.sample"), ContainerWithFileOpts{Owner: "www-data"}).
+		WithFile("/var/www/html/.htaccess", htaccess, ContainerWithFileOpts{Owner: "www-data"}).
 		WithLabel(oci.AnnotationTitle, "wavelog").
 		WithLabel(oci.AnnotationDescription, "Container for wavelog - Webbased Amateur Radio Logging Software").
 		WithLabel(oci.AnnotationVersion, tag)
