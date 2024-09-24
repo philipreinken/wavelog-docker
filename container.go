@@ -68,6 +68,9 @@ func withConfig(c *Container) *Container {
 		WithNewFile("/etc/apache2/sites-enabled/000-default.conf", ContainerWithNewFileOpts{
 			Contents:    fmt.Sprintf(apacheSiteConfig, port),
 			Permissions: 0644,
+		}).
+		WithExposedPort(port, ContainerWithExposedPortOpts{
+			Protocol: Tcp,
 		})
 }
 
