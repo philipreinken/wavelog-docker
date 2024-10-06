@@ -12,7 +12,7 @@ import (
 const phpExtensionInstallerUrl = "https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions"
 const wavelogRepoUrl = "https://github.com/wavelog/wavelog.git"
 
-const port = 8080
+const port = 80
 
 const apachePortsConfig = `
 Listen %d
